@@ -1,3 +1,8 @@
 * 笔记
 ** 常用策略
 *** assumption
+当目标出现在前提里面可以直接使用
+*** exfalso
+当前提明显自相矛盾时使用
+*** generalize
+*** congruence

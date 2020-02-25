@@ -738,10 +738,12 @@ Module AExp.
         rewrite IHbevalR1, IHbevalR2.
         reflexivity.
     - (* <- *)
-      intros H.
-      +
-
+      generalize bv; induction b;simpl; intros;
+        subst; constructor; try apply aeval_iff_aevalR;
+          try apply IHb; try apply IHb1; try apply IHb2;
+            try reflexivity.
   Qed.
+
 (**
   Inductive bexp : Type :=
   | BTrue
