@@ -738,21 +738,31 @@ Module AExp.
         rewrite IHbevalR1, IHbevalR2.
         reflexivity.
     - (* <- *)
+      generalize bv; induction b; simpl; intros; subst.
+      + constructor.
+      + constructor.
+      + constructor.
+        apply aeval_iff_aevalR.
+        reflexivity.
+        apply aeval_iff_aevalR.
+        reflexivity.
+      + constructor.
+        apply aeval_iff_aevalR.
+        reflexivity.
+        apply aeval_iff_aevalR.
+        reflexivity.
+      + constructor.
+        apply IHb.
+        reflexivity.
+      + constructor. apply IHb1. reflexivity.
+        apply IHb2. reflexivity.
+  (**
       generalize bv; induction b;simpl; intros;
         subst; constructor; try apply aeval_iff_aevalR;
           try apply IHb; try apply IHb1; try apply IHb2;
             try reflexivity.
+   **)
   Qed.
-
-(**
-  Inductive bexp : Type :=
-  | BTrue
-  | BFalse
-  | BEq (a1 a2 : aexp)
-  | BLe (a1 a2 : aexp)
-  | BNot (b : bexp)
-  | BAnd (b1 b2 : bexp).
- *)
 
 End AExp.
 
@@ -995,6 +1005,8 @@ Definition empty_st := (_ !-> 0).
 (** 现在我们可以为“单例状态（singleton state）”添加新的记法了，
     即只有一个绑定到值的变量。 *)
 Notation "x '!->' v" := (t_update empty_st x v) (at level 100).
+
+Print t_update.
 
 Example aexp1 :
   aeval (X !-> 5) (3 + (X * 2))

@@ -5,4 +5,24 @@
 *** exfalso
 当前提明显自相矛盾时使用
 *** generalize
+概括
 *** congruence
+强化的discriminate
+*** constructor
+可以根据归纳类型自动匹配类型
+*** subst
+替代，substitute
+当目标里面有a=b，前提有b=a，那就可以直接替代。
+类似apply，但是不需要指定前提，subst自动会寻找可以的进行替代。
+*** discriminate
+存在不相等的等式，则可以使用该策略结束证明
+例如H：true=false。或者使用exfalso
+*** inversion
+逆推，用来发现使假设成立的其他必要条件。
+可以配合subst。将逆推出来前提替换到目标中。
+*** intuition
+加强版auto
+** 标准库的文档见
+    https://coq.inria.fr/library/
+** 策略介绍英文
+https://pjreddie.com/coq-tactics/
