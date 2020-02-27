@@ -1,4 +1,8 @@
-* 笔记
+* 学习笔记
+** Coq语法
+*** let in
+let 定义一个变量，in表示后续的作用域
+
 ** 常用策略
 *** assumption
 当目标出现在前提里面可以直接使用
@@ -23,6 +27,6 @@
 *** intuition
 加强版auto
 ** 标准库的文档见
-    https://coq.inria.fr/library/
+https://coq.inria.fr/library/
 ** 策略介绍英文
 https://pjreddie.com/coq-tactics/

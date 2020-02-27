@@ -696,19 +696,41 @@ Module AExp.
 
     用和 [aevalR] 同样的方式写出关系 [bevalR]，并证明它等价于 [beval]。 *)
 
+  (* Inductive bevalR: bexp -> bool -> Prop := *)
+  (* | E_BTrue: *)
+  (*     bevalR BTrue true *)
+  (* | E_BFalse: *)
+  (*     bevalR BFalse false *)
+  (* | E_BEq (a1 a2:aexp) (n1 n2:nat) (H1:a1 ==> n1) (H2:a2 ==> n2): *)
+  (*     bevalR (BEq a1 a2) (n1 =? n2) *)
+  (* | E_BLe (a1 a2:aexp) (n1 n2:nat) (H1:a1 ==> n1) (H2:a2 ==> n2): *)
+  (*     bevalR (BLe a1 a2) (n1 <=? n2) *)
+  (* | E_BNot (a:bexp) (b:bool) (H:bevalR a b): *)
+  (*     bevalR (BNot a) (negb b) *)
+  (* | E_BAnd (a1 a2:bexp) (b1 b2:bool) (H1:bevalR a1 b1) (H2:bevalR a2 b2): *)
+  (*     bevalR (BAnd a1 a2) (andb b1 b2). *)
+
   Inductive bevalR: bexp -> bool -> Prop :=
   | E_BTrue:
       bevalR BTrue true
   | E_BFalse:
       bevalR BFalse false
-  | E_BEq (a1 a2:aexp) (n1 n2:nat) (H1:a1 ==> n1) (H2:a2 ==> n2):
+  | E_BEq : forall a1 a2 n1 n2,
+      a1 ==> n1 ->
+      (a2 ==> n2) ->
       bevalR (BEq a1 a2) (n1 =? n2)
-  | E_BLe (a1 a2:aexp) (n1 n2:nat) (H1:a1 ==> n1) (H2:a2 ==> n2):
+  | E_BLe: forall a1 a2 n1 n2,
+      (a1 ==> n1) ->
+      (a2 ==> n2) ->
       bevalR (BLe a1 a2) (n1 <=? n2)
-  | E_BNot (a:bexp) (b:bool) (H:bevalR a b):
+  | E_BNot: forall a b,
+      (bevalR a b) ->
       bevalR (BNot a) (negb b)
-  | E_BAnd (a1 a2:bexp) (b1 b2:bool) (H1:bevalR a1 b1) (H2:bevalR a2 b2):
+  | E_BAnd: forall a1 a2 b1 b2,
+      (bevalR a1 b1) ->
+      (bevalR a2 b2) ->
       bevalR (BAnd a1 a2) (andb b1 b2).
+
 
   Lemma beval_iff_bevalR : forall b bv,
       bevalR b bv <-> beval b = bv.
@@ -722,14 +744,14 @@ Module AExp.
       + (* E_BFalse *)
         reflexivity.
       + (* E_BEq *)
-        apply aeval_iff_aevalR' in H1.
-        apply aeval_iff_aevalR' in H2.
-        rewrite H1, H2.
+        apply aeval_iff_aevalR' in H.
+        apply aeval_iff_aevalR' in H0.
+        rewrite H, H0.
         reflexivity.
       + (* E_BLe *)
-        apply aeval_iff_aevalR' in H1.
-        apply aeval_iff_aevalR' in H2.
-        rewrite H1, H2.
+        apply aeval_iff_aevalR' in H.
+        apply aeval_iff_aevalR' in H0.
+        rewrite H, H0.
         reflexivity.
       + (* E_BNot *)
         rewrite IHbevalR.
@@ -1186,8 +1208,8 @@ Definition subtract_3_from_5_slowly : com :=
 
 Definition loop : com :=
   WHILE true DO
-        SKIP
-        END.
+        X ::= X
+                END.
 
 (* ################################################################# *)
 (** * 求值指令 *)
@@ -1205,18 +1227,16 @@ Open Scope imp_scope.
 Fixpoint ceval_fun_no_while (st : state) (c : com)
   : state :=
   match c with
-  | SKIP =>
-    st
-  | x ::= a1 =>
-          (x !-> (aeval st a1) ; st)
-        | c1 ;; c2 =>
-          let st' := ceval_fun_no_while st c1 in
-          ceval_fun_no_while st' c2
-        | TEST b THEN c1 ELSE c2 FI =>
-          if (beval st b)
-          then ceval_fun_no_while st c1
-          else ceval_fun_no_while st c2
-        | WHILE b DO c END =>
+  | SKIP => st
+  | x ::= a1 => (x !-> (aeval st a1) ; st)
+  | c1 ;; c2 =>
+    let st' := ceval_fun_no_while st c1 in
+    ceval_fun_no_while st' c2
+  | TEST b THEN c1 ELSE c2 FI =>
+    if (beval st b)
+    then ceval_fun_no_while st c1
+    else ceval_fun_no_while st c2
+  | WHILE b DO c END =>
           st  (* 假装能用 *)
   end.
 Close Scope imp_scope.
@@ -1310,78 +1330,83 @@ Reserved Notation "st '=[' c ']=>' st'"
 Inductive ceval : com -> state -> state -> Prop :=
 | E_Skip : forall st,
     st =[ SKIP ]=> st
-| E_Ass  : forall st a1 n x,
-    aeval st a1 = n ->
-    st =[ x ::= a1 ]=> (x !-> n ; st)
+| E_Ass  : forall st a n x,
+    aeval st a = n ->
+    st =[ x ::= a ]=> (x !-> n ; st)
 | E_Seq : forall c1 c2 st st' st'',
-    st  =[ c1 ]=> st'  ->
-                  st' =[ c2 ]=> st'' ->
-                                st  =[ c1 ;; c2 ]=> st''
+    st  =[ c1 ]=> st'  -> st' =[ c2 ]=> st'' -> st  =[ c1 ;; c2 ]=> st''
 | E_IfTrue : forall st st' b c1 c2,
-    beval st b = true ->
-    st =[ c1 ]=> st' ->
-                 st =[ TEST b THEN c1 ELSE c2 FI ]=> st'
+    beval st b = true -> st =[ c1 ]=> st' -> st =[ TEST b THEN c1 ELSE c2 FI ]=> st'
 | E_IfFalse : forall st st' b c1 c2,
-    beval st b = false ->
-    st =[ c2 ]=> st' ->
-                 st =[ TEST b THEN c1 ELSE c2 FI ]=> st'
+    beval st b = false -> st =[ c2 ]=> st' -> st =[ TEST b THEN c1 ELSE c2 FI ]=> st'
 | E_WhileFalse : forall b st c,
-    beval st b = false ->
-    st =[ WHILE b DO c END ]=> st
+    beval st b = false -> st =[ WHILE b DO c END ]=> st
 | E_WhileTrue : forall st st' st'' b c,
-    beval st b = true ->
-    st  =[ c ]=> st' ->
-                 st' =[ WHILE b DO c END ]=> st'' ->
-                                             st  =[ WHILE b DO c END ]=> st''
+    beval st b = true -> st  =[ c ]=> st' -> st' =[ WHILE b DO c END ]=> st'' -> st  =[ WHILE b DO c END ]=> st''
 
 where "st =[ c ]=> st'" := (ceval c st st').
 
 (** 将求值定义成关系而非函数的代价是，我们需要自己为某个程序求值成某种结束状态_'构造证明'_，
     而不能只是交给 Coq 的计算机制去做了。 *)
-
+Print empty_st.
 Example ceval_example1:
   empty_st =[
-    X ::= 2;;
-           TEST X <= 1
-                       THEN Y ::= 3
-                                    ELSE Z ::= 4
-                                                 FI
+    X ::= 2;; TEST X <= 1 THEN Y ::= 3 ELSE Z ::= 4
+                                                   FI
   ]=> (Z !-> 4 ; X !-> 2).
 Proof.
   (* 我们必须提供中间状态 *)
   apply E_Seq with (X !-> 2).
+  constructor; simpl.
   - (* 赋值指令 *)
-    apply E_Ass. reflexivity.
-  - (* if 指令 *)
-    apply E_IfFalse.
     reflexivity.
-    apply E_Ass. reflexivity.
+  - (* if 指令 *)
+    apply E_IfFalse. reflexivity.
+    constructor. reflexivity.
 Qed.
 
 (** **** 练习：2 星, standard (ceval_example2)  *)
 Example ceval_example2:
   empty_st =[
     X ::= 0;; Y ::= 1;; Z ::= 2
-  ]=> (Z !-> 2 ; Y !-> 1 ; X !-> 0).
+  ]=> (Z !-> 2; Y !-> 1 ; X !-> 0).
 Proof.
-(* 请在此处解答 *) Admitted.
-(** [] *)
+  apply E_Seq with (X !-> 0).
+  - constructor. reflexivity.
+  - apply E_Seq with (Y !->1; X !-> 0).
+    + constructor. reflexivity.
+    + constructor.  reflexivity.
+Qed.
+(** [Done] *)
 
 (** **** 练习：3 星, standard, optional (pup_to_n)
 
     写一个 Imp 程序对从 [1] 到 [X] 进行求值（包括：将 [1 + 2 + ... + X]) 赋予变量 [Y]。
    证明此程序对于 [X] = [2] 会按预期执行（这可能比你预想的还要棘手）。 *)
-
-Definition pup_to_n : com
-(* 将本行替换成 ":= _你的_定义_ ." *). Admitted.
+Definition pup_to_n : com :=
+  Y ::= 0;; WHILE 1 <= X DO Y ::= Y + X;; X ::= X - 1 END.
 
 Theorem pup_to_2_ceval :
   (X !-> 2) =[
     pup_to_n
-  ]=> (X !-> 0 ; Y !-> 3 ; X !-> 1 ; Y !-> 2 ; Y !-> 0 ; X !-> 2).
+  ]=> (X!->0; Y!->3; X!->1; Y!->2; Y!->0; X!->2).
 Proof.
-(* 请在此处解答 *) Admitted.
-(** [] *)
+  unfold pup_to_n.
+  apply E_Seq with (Y!->0; X!->2).
+  - constructor. reflexivity.
+  - apply E_WhileTrue with  (X!->1; Y!->2; Y!->0; X!->2).
+    + reflexivity.
+    + apply E_Seq with (Y !-> 2; Y !-> 0; X !-> 2).
+      * apply E_Ass. reflexivity.
+      * apply E_Ass. reflexivity.
+    + apply E_WhileTrue with (X!->0; Y!->3; X!->1; Y!->2; Y!->0; X!->2).
+      * simpl. reflexivity.
+      * apply E_Seq with (Y!->3; X!->1; Y!->2; Y!->0; X!->2).
+        {apply E_Ass. try reflexivity. }
+        {apply E_Ass. try reflexivity. }
+      * apply E_WhileFalse. reflexivity.
+Qed.
+(** [Done Wei@2020-2-27] *)
 
 (* ================================================================= *)
 (** ** 求值的确定性 *)
@@ -1396,8 +1421,8 @@ Proof.
 
 Theorem ceval_deterministic: forall c st st1 st2,
     st =[ c ]=> st1  ->
-                st =[ c ]=> st2 ->
-                            st1 = st2.
+               st =[ c ]=> st2 ->
+                          st1 = st2.
 Proof.
   intros c st st1 st2 E1 E2.
   generalize dependent st2.
@@ -1438,7 +1463,7 @@ Proof.
 Theorem plus2_spec : forall st n st',
     st X = n ->
     st =[ plus2 ]=> st' ->
-                    st' X = n + 2.
+                   st' X = n + 2.
 Proof.
   intros st n st' HX Heval.
 
@@ -1499,7 +1524,7 @@ Close Scope imp_scope.
 
 Inductive no_whilesR: com -> Prop :=
 (* 请在此处解答 *)
-.
+ .
 
 Theorem no_whiles_eqv:
   forall c, no_whiles c = true <-> no_whilesR c.
