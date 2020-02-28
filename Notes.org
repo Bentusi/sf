@@ -26,6 +26,14 @@ let 定义一个变量，in表示后续的作用域
 可以配合subst。将逆推出来前提替换到目标中。
 *** intuition
 加强版auto
+*** clear
+*** assert
+增加断言
+  - (* E_Seq *)
+    assert (st' = st'0) as EQ1.
+    { (* 对断言的证明 *) apply IHE1_1; assumption. }
+    subst st'0.
+    apply IHE1_2. assumption.
 ** 标准库的文档见
 https://coq.inria.fr/library/
 ** 策略介绍英文

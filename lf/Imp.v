@@ -1426,33 +1426,50 @@ Theorem ceval_deterministic: forall c st st1 st2,
 Proof.
   intros c st st1 st2 E1 E2.
   generalize dependent st2.
-  induction E1; intros st2 E2; inversion E2; subst.
-  - (* E_Skip *) reflexivity.
-  - (* E_Ass *) reflexivity.
-  - (* E_Seq *)
-    assert (st' = st'0) as EQ1.
-    { (* 对断言的证明 *) apply IHE1_1; assumption. }
-    subst st'0.
-    apply IHE1_2. assumption.
-  - (* E_IfTrue，b 求值为 true *)
-    apply IHE1. assumption.
-  - (* E_IfTrue，b 求值为 false（矛盾） *)
+  induction E1.
+  - intros. inversion E2. reflexivity.
+  - intros. inversion E2. subst. reflexivity.
+  - intros. inversion E2. subst.
+    assert (H: st' = st'0).
+    {apply IHE1_1, H1. }
+    subst st'0. apply IHE1_2. assumption.
+  - intros. inversion E2. subst. apply IHE1. assumption.
     rewrite H in H5. discriminate H5.
-  - (* E_IfFalse, b 求值为 true（矛盾） *)
-    rewrite H in H5. discriminate H5.
-  - (* E_IfFalse，b 求值为 false *)
+  - intros. inversion E2. rewrite H in H5. discriminate H5.
     apply IHE1. assumption.
-  - (* E_WhileFalse，b 求值为 false *)
-    reflexivity.
-  - (* E_WhileFalse，b 求值为 true（矛盾） *)
+  - intros. inversion E2. subst. reflexivity.
     rewrite H in H2. discriminate H2.
-  - (* E_WhileTrue, b 求值为 false（矛盾） *)
-    rewrite H in H4. discriminate H4.
-  - (* E_WhileTrue，b 求值为 true *)
-    assert (st' = st'0) as EQ1.
-    { (* 对断言的证明 *) apply IHE1_1; assumption. }
-    subst st'0.
-    apply IHE1_2. assumption.  Qed.
+  - intros. inversion E2. rewrite H3 in H. rewrite H in H4. discriminate H4.
+    apply IHE1_2. assert (st' = st'0).
+    {apply IHE1_1, H3.} rewrite H7. assumption.
+Qed.
+(* induction E1; intros st2 E2; inversion E2; subst. *)
+(* - (* E_Skip *) reflexivity. *)
+      (* - (* E_Ass *) reflexivity. *)
+      (* - (* E_Seq *) *)
+      (*   assert (st' = st'0) as EQ1. *)
+      (*   { (* 对断言的证明 *) apply IHE1_1; assumption. } *)
+      (*   subst st'0. *)
+      (*   apply IHE1_2. assumption. *)
+      (* - (* E_IfTrue，b 求值为 true *) *)
+      (*   apply IHE1. assumption. *)
+      (* - (* E_IfTrue，b 求值为 false（矛盾） *) *)
+      (*   rewrite H in H5. discriminate H5. *)
+      (* - (* E_IfFalse, b 求值为 true（矛盾） *) *)
+      (*   rewrite H in H5. discriminate H5. *)
+      (* - (* E_IfFalse，b 求值为 false *) *)
+      (*   apply IHE1. assumption. *)
+      (* - (* E_WhileFalse，b 求值为 false *) *)
+      (*   reflexivity. *)
+      (* - (* E_WhileFalse，b 求值为 true（矛盾） *) *)
+      (*   rewrite H in H2. discriminate H2. *)
+      (* - (* E_WhileTrue, b 求值为 false（矛盾） *) *)
+      (*   rewrite H in H4. discriminate H4. *)
+      (* - (* E_WhileTrue，b 求值为 true *) *)
+      (*   assert (st' = st'0) as EQ1. *)
+      (*   { (* 对断言的证明 *) apply IHE1_1; assumption. } *)
+      (*   subst st'0. *)
+      (*   apply IHE1_2. assumption. *)
 
 (* ################################################################# *)
 (** * 对 Imp 进行推理 *)
@@ -1471,11 +1488,11 @@ Proof.
       由于 [plus2] 是一个赋值，因此这种情况揭示了 [st'] 一定是 [st]
       通过新的值 [X] 扩展而来的。 *)
 
-  inversion Heval. subst. clear Heval. simpl.
-  apply t_update_eq.  Qed.
+  inversion Heval. subst. clear. simpl.
+  apply t_update_eq.
+Qed.
 
 (** **** 练习：3 星, standard, optional (XtimesYinZ_spec)
-
     叙述并证明 [XtimesYinZ] 的规范（Specification）。 *)
 
 (* 请在此处解答 *)
@@ -1494,7 +1511,6 @@ Proof.
 
 (** 归纳讨论假设“[loopdef] 会终止”之构造，其中多数情形的矛盾显而易见，
       可用 [discriminate] 一步解决。 *)
-
 (* 请在此处解答 *) Admitted.
 (** [] *)
 
@@ -1507,8 +1523,7 @@ Fixpoint no_whiles (c : com) : bool :=
   match c with
   | SKIP =>
     true
-  | _ ::= _ =>
-          true
+  | _ ::= _ => true
         | c1 ;; c2 =>
           andb (no_whiles c1) (no_whiles c2)
         | TEST _ THEN ct ELSE cf FI =>
@@ -1522,14 +1537,38 @@ Close Scope imp_scope.
     写出一个性质 [no_whilesR] 使得 [no_whilesR c] 仅当 [c] 是个没有
     [WHILE] 循环的程序时才可以证明。之后证明它与 [no_whiles] 等价。 *)
 
+(* Inductive com : Type := *)
+(* | CSkip *)
+(* | CAss (x : string) (a : aexp) *)
+(* | CSeq (c1 c2 : com) *)
+(* | CIf (b : bexp) (c1 c2 : com) *)
+(* | CWhile (b : bexp) (c : com). *)
 Inductive no_whilesR: com -> Prop :=
 (* 请在此处解答 *)
- .
+| NW_CSKIP : no_whilesR SKIP
+| NW_CAss : forall X a, no_whilesR (X ::= a)
+| NW_Seq : forall c1 c2,
+    no_whilesR c1 ->
+    no_whilesR c2 ->
+    no_whilesR (c1;;c2)
+| NW_If : forall b c1 c2,
+    no_whilesR c1 ->
+    no_whilesR c2 ->
+    no_whilesR (TEST b THEN c1 ELSE c2 FI).
 
 Theorem no_whiles_eqv:
   forall c, no_whiles c = true <-> no_whilesR c.
 Proof.
-(* 请在此处解答 *) Admitted.
+  split.
+  (* -> *)
+  intros.
+  - (* <- *)
+    induction c.
+    + constructor.
+    + constructor.
+    + inversion H.
+
+Qed.
 (** [] *)
 
 (** **** 练习：4 星, standard (no_whiles_terminating)
