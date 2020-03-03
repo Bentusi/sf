@@ -1441,7 +1441,8 @@ Proof.
     rewrite H in H2. discriminate H2.
   - intros. inversion E2. rewrite H3 in H. rewrite H in H4. discriminate H4.
     apply IHE1_2. assert (st' = st'0).
-    {apply IHE1_1, H3.} rewrite H7. assumption.
+    * apply IHE1_1, H3.
+    * rewrite H7. assumption.
 Qed.
 (* induction E1; intros st2 E2; inversion E2; subst. *)
 (* - (* E_Skip *) reflexivity. *)
@@ -1560,14 +1561,24 @@ Theorem no_whiles_eqv:
   forall c, no_whiles c = true <-> no_whilesR c.
 Proof.
   split.
-  (* -> *)
   intros.
+  - (* -> *)
+    induction c.
+    + constructor.
+    + constructor.
+    + inversion H. apply andb_true_iff in H1. constructor.
+      apply IHc1. apply H1.
+      apply IHc2. apply H1.
+    + inversion H. apply andb_true_iff in H1. constructor.
+      apply IHc1, H1. apply IHc2, H1.
+    + inversion H.
   - (* <- *)
     induction c.
     + constructor.
     + constructor.
-    + inversion H.
-
+    + intros. inversion H. apply andb_true_iff. auto.
+    + intros. inversion H. apply andb_true_iff. auto.
+    + intros. inversion H.
 Qed.
 (** [] *)
 
@@ -1634,9 +1645,14 @@ Inductive sinstr : Type :=
     注意，当栈中的元素少于两个时，规范并未指定 [SPlus]、[SMinus] 或 [SMult] 指令的行为。
     从某种意义上说，这样做并无必要，因为我们的编译器永远不会产生这种畸形的程序。 *)
 
-Fixpoint s_execute (st : state) (stack : list nat)
-         (prog : list sinstr)
-  : list nat
+Fixpoint s_execute (st : state) (stack : list nat) (prog : list sinstr) : list nat :=
+| E_SPush n:
+    n :: stack
+| E_SLoad x:
+    (st x) :: stack
+| E_SPlus
+| E_SMinus
+| E_SMult.
 (* 将本行替换成 ":= _你的_定义_ ." *). Admitted.
 
 Example s_execute1 :
